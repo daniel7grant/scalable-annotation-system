@@ -40,6 +40,21 @@ export default class Service {
         return promise;
     }
 
+    static getNodesById() {
+        return axios({
+            socketPath: '/var/run/docker.sock',
+            url: '/nodes'
+        }).then(({ data }) =>
+            data.reduce(
+                (byid, node) => ({
+                    ...byid,
+                    [node.ID]: node
+                }),
+                {}
+            )
+        );
+    }
+
     getVersion() {
         return axios({
             socketPath: '/var/run/docker.sock',
@@ -50,16 +65,28 @@ export default class Service {
     }
 
     listContainers() {
+        return Service.getNodesById().then(nodes =>
+            axios({
+                socketPath: '/var/run/docker.sock',
+                url: '/tasks'
+            })
+                .then(({ data }) => data.filter(task => task.ServiceID === this.id))
+                .then(containers =>
+                    containers.map(container => ({
+                        ...container,
+                        Node: nodes[container.NodeID]
+                    }))
+                )
+        );
+    }
+
+    /** @returns Promise<Socket> */
+    retrieveContainerStats(containerId) {
         return axios({
             socketPath: '/var/run/docker.sock',
-            url: '/containers/json'
-        }).then(res => {
-            return res.data.filter(
-                container =>
-                    container.Labels['com.docker.swarm.service.name'] &&
-                    container.Labels['com.docker.swarm.service.name'] === this.name
-            );
-        });
+            url: `/containers/${containerId}/stats`,
+            responseType: 'stream'
+        }).then(res => res.data.socket);
     }
 
     async scale(replicas) {
