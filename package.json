@@ -11,7 +11,8 @@
   "devDependencies": {
     "@babel/cli": "^7.1.5",
     "@babel/core": "^7.1.6",
-    "@babel/node": "^7.0.0"
+    "@babel/node": "^7.0.0",
+    "prettier": "^1.15.2"
   },
   "dependencies": {
     "axios": "^0.18.0"

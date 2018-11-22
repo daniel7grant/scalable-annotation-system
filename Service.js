@@ -1,96 +1,103 @@
 const axios = require('axios');
 
 export default class Service {
-	constructor(id, name, image, replicas) {
-		this.id = id;
-		this.name = name;
-		this.image = image;
-		this.replicas = replicas;
-	}
+    constructor(id, name, image, replicas) {
+        this.id = id;
+        this.name = name;
+        this.image = image;
+        this.replicas = replicas;
+    }
 
-	static async create(name, image, replicas = 1) {
-		try {
-			let res = await axios({
-				method: 'post',
-				socketPath: '/var/run/docker.sock',
-				url: '/services/create',
-				data: {
-					'Name': name,
-					'TaskTemplate': {
-						'ContainerSpec': {
-							'Image': image,
-						},
-					},
-					'Mode': {
-						'Replicated': {
-							'Replicas': replicas,
-						},
-					},
-				},
-			});
-			return new Service(res.data.ID, name, image, replicas);
-		}
-		catch (exception) {
-			console.error(exception);
-		}
-	}
+    /** @returns {Promise<Service>} */
+    static async create(name, image, replicas = 1) {
+        try {
+            let res = await axios({
+                method: 'post',
+                socketPath: '/var/run/docker.sock',
+                url: '/services/create',
+                data: {
+                    Name: name,
+                    TaskTemplate: {
+                        ContainerSpec: {
+                            Image: image
+                        }
+                    },
+                    Mode: {
+                        Replicated: {
+                            Replicas: replicas
+                        }
+                    }
+                }
+            });
+            return await Service.converge(new Service(res.data.ID, name, image, replicas));
+        } catch (exception) {
+            console.error(exception);
+        }
+    }
 
-	getVersion() {
-		return axios({
-			socketPath: '/var/run/docker.sock',
-			url: '/services/' + this.name,
-		}).then(res => {
-			return res.data.Version.Index;
-		})
-	}
+    static async converge(promise, ms = 10000) {
+        await new Promise(resolve => setTimeout(resolve, ms));
+        return promise;
+    }
 
-	listContainers() {
-		return axios({
-			socketPath: '/var/run/docker.sock',
-			url: '/containers/json',
-		}).then(res => {
-			return res.data.filter(container =>
-				container.Labels['com.docker.swarm.service.name']
-				&& container.Labels['com.docker.swarm.service.name'] === this.name,
-			);
-		})
-	}
+    getVersion() {
+        return axios({
+            socketPath: '/var/run/docker.sock',
+            url: '/services/' + this.name
+        }).then(res => {
+            return res.data.Version.Index;
+        });
+    }
 
-	async scale(replicas) {
-		let version = await this.getVersion();
-		return axios({
-			method: 'post',
-			socketPath: '/var/run/docker.sock',
-			url: `/services/${this.name}/update?version=${version}`,
-			data: {
-				'Name': this.name,
-				'TaskTemplate': {
-					'ContainerSpec': {
-						'Image': 'php:7.2-alpine',
-					},
-				},
-				'Mode': {
-					'Replicated': {
-						'Replicas': replicas,
-					},
-				},
-			},
-		});
-	}
+    listContainers() {
+        return axios({
+            socketPath: '/var/run/docker.sock',
+            url: '/containers/json'
+        }).then(res => {
+            return res.data.filter(
+                container =>
+                    container.Labels['com.docker.swarm.service.name'] &&
+                    container.Labels['com.docker.swarm.service.name'] === this.name
+            );
+        });
+    }
 
-	increment() {
-		return this.scale(this.replicas + 1);
-	}
+    async scale(replicas) {
+        let version = await this.getVersion();
+        this.replicas = replicas;
+        return axios({
+            method: 'post',
+            socketPath: '/var/run/docker.sock',
+            url: `/services/${this.name}/update?version=${version}`,
+            data: {
+                Name: this.name,
+                TaskTemplate: {
+                    ContainerSpec: {
+                        Image: this.image
+                    }
+                },
+                Mode: {
+                    Replicated: {
+                        Replicas: replicas
+                    }
+                }
+            }
+        }).then(({ data }) => data.Warnings);
+    }
 
-	decrement() {
-		return this.scale(this.replicas - 1);
-	}
+    increment() {
+        return this.scale(this.replicas + 1);
+    }
 
-	remove() {
-		return axios({
-			method: 'delete',
-			socketPath: '/var/run/docker.sock',
-			url: `/services/${this.name}`,
-		});
-	}
+    decrement() {
+        return this.scale(this.replicas - 1);
+    }
+
+    remove() {
+        return axios({
+            method: 'delete',
+            socketPath: '/var/run/docker.sock',
+            url: `/services/${this.name}`
+        }).then(({ data }) => data);
+    }
 }
