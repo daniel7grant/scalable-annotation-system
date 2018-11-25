@@ -1,4 +1,5 @@
-const axios = require('axios');
+import net from 'net';
+import axios from 'axios';
 
 export default class Service {
     constructor(id, name, image, replicas) {
@@ -35,7 +36,7 @@ export default class Service {
         }
     }
 
-    static async converge(promise, ms = 10000) {
+    static async converge(promise, ms = 5000) {
         await new Promise(resolve => setTimeout(resolve, ms));
         return promise;
     }
@@ -82,11 +83,15 @@ export default class Service {
 
     /** @returns Promise<Socket> */
     retrieveContainerStats(containerId) {
-        return axios({
-            socketPath: '/var/run/docker.sock',
-            url: `/containers/${containerId}/stats`,
-            responseType: 'stream'
-        }).then(res => res.data.socket);
+        return new Promise((resolve, reject) => {
+            let socket = net.createConnection('/var/run/docker.sock', () => {
+                socket.write(
+                    `GET /containers/${containerId}/stats HTTP/1.1\r\n` + `Host: localhost\r\n\r\n`,
+                    () => resolve(socket)
+                );
+            });
+            socket.on('error', reject);
+        });
     }
 
     async scale(replicas) {
@@ -109,7 +114,9 @@ export default class Service {
                     }
                 }
             }
-        }).then(({ data }) => data.Warnings);
+        })
+            .then(({ data }) => data.Warnings)
+            .catch(console.error);
     }
 
     increment() {
