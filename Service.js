@@ -30,15 +30,30 @@ export default class Service {
                     }
                 }
             });
-            return await Service.converge(new Service(res.data.ID, name, image, replicas));
+            let service = new Service(res.data.ID, name, image, replicas);
+            return await service.converge(service, true);
         } catch (exception) {
             console.error(exception);
         }
     }
 
-    static async converge(promise, ms = 10000) {
-        await new Promise(resolve => setTimeout(resolve, ms));
-        return promise;
+    async converge(promise, debug = false) {
+        return new Promise(async (resolve, reject) => {
+            debug && process.stdout.write('Waiting for converging...\n');
+            let containers;
+            do {
+                containers = await this.listContainers();
+                debug &&
+                    process.stdout.write(
+                        containers
+                            .map(c => c.Status.State.padEnd(12, ' '))
+                            .join('')
+                            .concat('                      \r')
+                    );
+            } while (!containers.reduce((acc, c) => acc && c.Status.State === 'running', true));
+            debug && process.stdout.write('\n');
+            resolve(promise);
+        });
     }
 
     static getNodesById() {

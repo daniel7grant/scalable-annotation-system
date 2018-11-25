@@ -2,8 +2,10 @@ import Service from './Service';
 import ScaleServer from './ScaleServer';
 import net from 'net';
 
+process.stdout.write('Creating service...\n');
 Service.create('web', 'php:7.2-apache', 5)
     .then(async function(service) {
+        process.stdout.write('Service created.\n');
         let server = new ScaleServer(3000);
         server
             .onRequest('GET /service/container/stats', async (req, res, query) => {
@@ -23,7 +25,6 @@ Service.create('web', 'php:7.2-apache', 5)
             });
 
         let containers = await service.listContainers();
-        console.log(containers.map(container => container.Status));
 
         let cnt = 0;
         let stats = containers.map(async container => {
@@ -45,7 +46,7 @@ Service.create('web', 'php:7.2-apache', 5)
                                             .toString()
                                             .substr(chunk.toString().indexOf('{'))
                                             .trim()
-                                    ).memory_stats.usage / 1000000
+                                    ).memory_stats.usage / 1e6
                                 )
                                     .toFixed(2)
                                     .concat('MB')
