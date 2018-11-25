@@ -36,7 +36,7 @@ export default class Service {
         }
     }
 
-    static async converge(promise, ms = 5000) {
+    static async converge(promise, ms = 10000) {
         await new Promise(resolve => setTimeout(resolve, ms));
         return promise;
     }

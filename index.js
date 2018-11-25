@@ -1,36 +1,60 @@
 import Service from './Service';
 import ScaleServer from './ScaleServer';
+import net from 'net';
 
 Service.create('web', 'php:7.2-apache', 5)
     .then(async function(service) {
         let server = new ScaleServer(3000);
+        server
+            .onRequest('GET /service/container/stats', async (req, res, query) => {
+                service
+                    .retrieveContainerStats(query.id)
+                    .then(socket => {
+                        socket.on('data', chunk => res.write(chunk.toString()));
+                        req.on('close', () => socket.destroy());
+                    })
+                    .catch(console.error);
+                req.on('close', () => res.end());
+            })
+            .onRequest('DELETE /service', async (req, res) => {
+                await service.remove();
+                res.end();
+                return server.close();
+            });
 
-        server.onRequest('GET /service/containers', async (req, res) =>
-            res.end(JSON.stringify(await service.listContainers()))
-        );
-        server.onRequest('GET /service/container/stats', async (req, res, query) => {
-            service
-                .retrieveContainerStats(query.id)
-                .then(socket => {
-                    socket.on('data', chunk => res.write(chunk.toString()));
-	                req.on('close', () => socket.destroy());
-                })
-                .catch(console.error);
-            req.on('close', () => res.end());
-        });
-        server.onRequest('POST /service/increment', async (req, res) =>
-            res.end(JSON.stringify(await service.increment()))
-        );
-        server.onRequest('POST /service/decrement', async (req, res) =>
-            res.end(JSON.stringify(await service.decrement()))
-        );
-        server.onRequest('DELETE /service', async (req, res) => {
-            await service.remove();
-            res.end();
-            return server.close();
-        });
-        server.onRequestWithBody('POST /service/scale', async (req, res, body) => {
-            res.end(JSON.stringify(await service.scale(body.replicas)));
+        let containers = await service.listContainers();
+        console.log(containers.map(container => container.Status));
+
+        let cnt = 0;
+        let stats = containers.map(async container => {
+            let socket = net.createConnection(
+                { host: container.Node.Status.Addr, port: 3000 },
+                () => {
+                    socket.write(
+                        `GET /service/container/stats?id=${
+                            container.Status.ContainerStatus.ContainerID
+                        } HTTP/1.1\r\n\r\n`
+                    );
+                    socket.on('data', chunk => {
+                        if (chunk.toString() && chunk.toString().indexOf('{') >= 0)
+                            console.log(
+                                container.Status.ContainerStatus.ContainerID,
+                                (
+                                    JSON.parse(
+                                        chunk
+                                            .toString()
+                                            .substr(chunk.toString().indexOf('{'))
+                                            .trim()
+                                    ).memory_stats.usage / 1000000
+                                )
+                                    .toFixed(2)
+                                    .concat('MB')
+                            );
+                        if (!(++cnt % 5)) console.log();
+                    });
+                }
+            );
+            return socket;
         });
     })
     .catch(console.error);
