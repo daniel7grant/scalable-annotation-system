@@ -37,16 +37,13 @@ Service.create('web', 'php:7.2-apache', 5)
                         } HTTP/1.1\r\n\r\n`
                     );
                     socket.on('data', chunk => {
-                        if (chunk.toString() && chunk.toString().indexOf('{') >= 0)
+                        chunk = chunk.toString();
+                        if (chunk && chunk.indexOf('{') >= 0)
                             console.log(
                                 container.Status.ContainerStatus.ContainerID,
                                 (
-                                    JSON.parse(
-                                        chunk
-                                            .toString()
-                                            .substr(chunk.toString().indexOf('{'))
-                                            .trim()
-                                    ).memory_stats.usage / 1e6
+                                    JSON.parse(chunk.substr(chunk.indexOf('{')).trim()).memory_stats
+                                        .usage / 1e6
                                 )
                                     .toFixed(2)
                                     .concat('MB')

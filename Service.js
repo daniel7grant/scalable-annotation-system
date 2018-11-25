@@ -12,25 +12,33 @@ export default class Service {
     /** @returns {Promise<Service>} */
     static async create(name, image, replicas = 1) {
         try {
-            let res = await axios({
-                method: 'post',
+            let { status, data } = await axios({
+                method: 'get',
                 socketPath: '/var/run/docker.sock',
-                url: '/services/create',
-                data: {
-                    Name: name,
-                    TaskTemplate: {
-                        ContainerSpec: {
-                            Image: image
-                        }
-                    },
-                    Mode: {
-                        Replicated: {
-                            Replicas: replicas
+                url: `/services/${name}`,
+                validateStatus: () => true
+            });
+            if (status === 404) {
+                data = (await axios({
+                    method: 'post',
+                    socketPath: '/var/run/docker.sock',
+                    url: '/services/create',
+                    data: {
+                        Name: name,
+                        TaskTemplate: {
+                            ContainerSpec: {
+                                Image: image
+                            }
+                        },
+                        Mode: {
+                            Replicated: {
+                                Replicas: replicas
+                            }
                         }
                     }
-                }
-            });
-            let service = new Service(res.data.ID, name, image, replicas);
+                })).data;
+            }
+            let service = new Service(data.ID, name, image, replicas);
             return await service.converge(service, true);
         } catch (exception) {
             console.error(exception);
@@ -130,7 +138,7 @@ export default class Service {
                 }
             }
         })
-            .then(({ data }) => data.Warnings)
+            .then(({ data }) => this.converge(data.Warnings))
             .catch(console.error);
     }
 
