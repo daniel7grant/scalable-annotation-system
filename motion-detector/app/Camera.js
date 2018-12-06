@@ -24,11 +24,14 @@ class Camera {
 		this.frame = this.camera.read().bgrToGray();
 
 		this.bgSubtract();
+		this.mean = this.avg.mean().w;
 
 		let date = (new Date()).getTime();
-		cv.imwrite('./frames/' + this.id + '-avg-' + date + '.jpg', this.avg);
-		cv.imwrite('./frames/' + this.id + '-bin-' + date + '.jpg', this.threshold);
-		this.means.push(this.avg.mean().w);
+		if (this.mean > 5) {
+			cv.imwrite('./frames/' + this.id + '-avg-' + date + '.jpg', this.avg);
+			cv.imwrite('./frames/' + this.id + '-bin-' + date + '.jpg', this.threshold);
+		}
+		this.means.push(this.mean);
 		this.lightness.push(this.frame.mean().w);
 
 		++this.k;

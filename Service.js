@@ -27,7 +27,13 @@ export default class Service {
 						TaskTemplate: {
 							ContainerSpec: {
 								Image: image,
-								Env: ['ASDASD=ASDASD'],
+								Mounts: [
+									{
+										Source: '/usr/local/lib/frames',
+										Target: '/usr/local/lib/motion-detector/frames',
+										Type: 'bind',
+									},
+								],
 							},
 						},
 						Mode: {

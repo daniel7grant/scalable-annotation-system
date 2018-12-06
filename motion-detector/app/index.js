@@ -18,6 +18,7 @@ setInterval(() => {
 				fps: entry[1].fps,
 				means: entry[1].resetMeans(),
 				lightness: entry[1].resetLightness(),
+				datetime: (new Date).getTime()
 			})),
 		},
 	}).then((response) => {

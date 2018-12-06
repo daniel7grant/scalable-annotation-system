@@ -23,7 +23,6 @@ Service.create('detection', 'motion-detector', replicas)
 			// Log for whatever reason
 			console.log(body);
 			log.write(JSON.stringify(body).concat('\n'));
-			return res.end(JSON.stringify(cameras));
 
 			// // First case, just fill the first replica
 			// if (Object.keys(distribution).length === 0) {
@@ -46,6 +45,8 @@ Service.create('detection', 'motion-detector', replicas)
 				// 		service.increment();
 				// 	}
 			}
+
+			return res.end(JSON.stringify(cameras));
 			//
 			// distribution[body.id].map(id => cameras)
 
