@@ -3,7 +3,7 @@ import ScaleServer from './ScaleServer';
 import net from 'net';
 
 process.stdout.write('Creating service...\n');
-Service.create('web', 'php:7.2-apache', 5)
+Service.create('detection', 'motion-detector', 5)
     .then(async function(service) {
         process.stdout.write('Service created.\n');
         let server = new ScaleServer(3000);
