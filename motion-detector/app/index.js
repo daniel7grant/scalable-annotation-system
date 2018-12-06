@@ -1,4 +1,5 @@
 const cv = require('opencv4nodejs');
+const fs = require('fs');
 const zeroPad = require('./utils').zeroPad;
 
 console.log('Connecting to camera.');
@@ -6,8 +7,10 @@ const camera = new cv.VideoCapture('rtsp://152.66.221.87:554/video.mp4');
 camera.set(cv.CAP_FFMPEG, 1);
 console.log('Connected to camera.');
 
+let log = fs.createWriteStream('logs/means.txt');
+
 let k = 0, fps = 0;
-let frame, prev;
+let frame, prev, avg, threshold;
 
 // avgDiff fields
 const AVGDIFF_THRESHOLD = 4;
@@ -29,9 +32,11 @@ function background() {
 	prev = frame;
 	frame = camera.read().bgrToGray();
 
-	let avg = avgDiff(frame, prev);
+	avg = avgDiff(frame, prev);
+	threshold = avg.threshold(10, 255, cv.THRESH_BINARY);
 	cv.imwrite('./frames/avg' + zeroPad(k) + '.jpg', avg);
-	cv.imwrite('./frames/bin' + zeroPad(k) + '.jpg', avg.threshold(10, 255, cv.THRESH_BINARY));
+	cv.imwrite('./frames/bin' + zeroPad(k) + '.jpg', threshold);
+	log.write(k.toString().concat(': ').concat(avg.mean().w).concat('\n'));
 
 	++k;
 	return setImmediate(() => background());
@@ -55,3 +60,7 @@ function bgSubstract(frame) {
 		bgAvg = bgAvg.addWeighted(k / (k + 1), frame, 1 / (k + 1), 0).addWeighted((k + 1) / k, bgRemoved, -(1 / k), 0);
 	}
 }
+
+process.on('exit', () => {
+	log.close();
+});

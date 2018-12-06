@@ -1,2 +1,3 @@
 node_modules/
-motion-detection/app/frames
+motion-detector/app/frames/
+motion-detector/app/logs/
