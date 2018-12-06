@@ -27,6 +27,7 @@ export default class Service {
 						TaskTemplate: {
 							ContainerSpec: {
 								Image: image,
+								Env: ['ASDASD=ASDASD'],
 							},
 						},
 						Mode: {

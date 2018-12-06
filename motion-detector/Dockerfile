@@ -69,7 +69,7 @@ RUN mkdir opencv && \
 	rm -rf opencv
 
 # INSTALL OPENCV 4 NODEJS
-RUN npm install -g opencv4nodejs --unsafe-perm
+RUN npm install -g axios opencv4nodejs --unsafe-perm
 
 # CLEAN UP
 RUN apt-get purge -y build-essential curl git python cmake \
@@ -82,4 +82,4 @@ COPY app/* /usr/local/lib/motion-detector/
 # START NODE APP
 WORKDIR /usr/local/lib/motion-detector
 ENV NODE_PATH=/usr/lib/node_modules/
-CMD ['node', 'index.js']
+CMD ["node", "index.js"]

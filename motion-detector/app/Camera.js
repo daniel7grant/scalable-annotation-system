@@ -14,6 +14,7 @@ class Camera {
 		this.BGSUB_ARRSIZE = 120;
 		this.frameQueue = Array(this.BGSUB_ARRSIZE);
 		this.means = [];
+		this.lightness = [];
 
 		setInterval(this.calculateFps.bind(this), 1000);
 	}
@@ -28,6 +29,7 @@ class Camera {
 		cv.imwrite('./frames/' + this.id + '-avg-' + date + '.jpg', this.avg);
 		cv.imwrite('./frames/' + this.id + '-bin-' + date + '.jpg', this.threshold);
 		this.means.push(this.avg.mean().w);
+		this.lightness.push(this.frame.mean().w);
 
 		++this.k;
 		return setImmediate(() => this.background());
@@ -60,6 +62,18 @@ class Camera {
 		this.fpsPrev = this.k;
 		this.fps = diff;
 		console.log(this.id + ': ' + diff)
+	}
+
+	resetMeans() {
+		let means = this.means;
+		this.means = [];
+		return means;
+	}
+
+	resetLightness() {
+		let lightness = this.lightness;
+		this.lightness = [];
+		return lightness;
 	}
 }
 
