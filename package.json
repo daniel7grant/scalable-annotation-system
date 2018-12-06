@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-		"prepare": "cd motion-detector && make",
+		"prepare": "cd motion-detector/app && npm install && cd .. && make",
         "start": "babel-node index.js"
     },
     "author": "Daniel Grant <gergely.daniel7@gmail.com>",
