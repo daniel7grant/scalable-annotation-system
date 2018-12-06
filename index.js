@@ -7,22 +7,7 @@ Service.create('web', 'php:7.2-apache', 5)
     .then(async function(service) {
         process.stdout.write('Service created.\n');
         let server = new ScaleServer(3000);
-        server
-            .onRequest('GET /service/container/stats', async (req, res, query) => {
-                service
-                    .retrieveContainerStats(query.id)
-                    .then(socket => {
-                        socket.on('data', chunk => res.write(chunk.toString()));
-                        req.on('close', () => socket.destroy());
-                    })
-                    .catch(console.error);
-                req.on('close', () => res.end());
-            })
-            .onRequest('DELETE /service', async (req, res) => {
-                await service.remove();
-                res.end();
-                return server.close();
-            });
+        service.attachTo(server);
 
         let containers = await service.listContainers();
 
